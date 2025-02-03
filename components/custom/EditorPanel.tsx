@@ -2,9 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect, Dispatch, SetStateAction, useRef } from "react";
-
 import { Button } from "@/components/ui/button";
-import FindReplaceDialog from "./FindReplaceDialog";
 
 interface EditorPanelProps {
   tabs: { name: string; content: string }[];
@@ -18,7 +16,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
 });
 
-const DEFAULT_TOKENS = 20000; // ✅ Default token count
+const DEFAULT_TOKENS = 20000;
 
 const EditorPanel: React.FC<EditorPanelProps> = ({ tabs, setTabs, activeTab, setActiveTab }) => {
   const [isSplit, setIsSplit] = useState<boolean>(false);
@@ -27,65 +25,78 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ tabs, setTabs, activeTab, set
   const editorRef = useRef<any>(null);
   const secondEditorRef = useRef<any>(null);
 
-  // Load saved tokens from localStorage
+  // ✅ Load saved tabs, activeTab, and tokens from localStorage on page load
   useEffect(() => {
+    const savedTabs = localStorage.getItem("editor-tabs");
+    const savedActiveTab = localStorage.getItem("editor-active-tab");
     const savedTokens = localStorage.getItem("remainingTokens");
     const savedTokensUsedPerTab = localStorage.getItem("tokensUsedPerTab");
 
+    if (savedTabs) setTabs(JSON.parse(savedTabs));
+    if (savedActiveTab) setActiveTab(savedActiveTab);
     if (savedTokens) setRemainingTokens(Number(savedTokens));
     if (savedTokensUsedPerTab) setTokensUsedPerTab(JSON.parse(savedTokensUsedPerTab));
   }, []);
 
+  // ✅ Save tabs & activeTab to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("editor-tabs", JSON.stringify(tabs));
+    localStorage.setItem("editor-active-tab", activeTab);
+  }, [tabs, activeTab]);
+
+  // ✅ Save tokens state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("remainingTokens", remainingTokens.toString());
+    localStorage.setItem("tokensUsedPerTab", JSON.stringify(tokensUsedPerTab));
+  }, [remainingTokens, tokensUsedPerTab]);
+
   // Function to calculate tokens based on code length
   const calculateTokens = (code: string) => {
-    return Math.ceil(code.length / 4); // ✅ Approximate token cost (4 chars = 1 token)
+    return Math.ceil(code.length / 4);
   };
 
-  // Handle text changes in the editor for ANY tab
+  // ✅ Handle text changes in the editor
   const handleEditorChange = (value: string | undefined) => {
-    if (!value || !activeTab || remainingTokens <= 0) return; // ✅ Prevent editing when tokens are 0
+    if (!value || !activeTab || remainingTokens <= 0) return;
 
     const currentTokensUsed = calculateTokens(value);
-    const previousTokensUsed = tokensUsedPerTab[activeTab] || 0; // Get previously used tokens for this tab
+    const previousTokensUsed = tokensUsedPerTab[activeTab] || 0;
     const tokenDifference = currentTokensUsed - previousTokensUsed;
 
     if (tokenDifference > 0) {
-      // ✅ Only subtract if tokens are increasing (typing more text)
       setRemainingTokens((prev) => Math.max(prev - tokenDifference, 0));
     }
 
-    // Update tokens used per tab
+    // Update tokens per tab
     setTokensUsedPerTab((prev) => ({
       ...prev,
-      [activeTab]: currentTokensUsed, // Store updated token count for the active tab
+      [activeTab]: currentTokensUsed,
     }));
 
-    // Save to localStorage
-    localStorage.setItem("remainingTokens", remainingTokens.toString());
-    localStorage.setItem("tokensUsedPerTab", JSON.stringify(tokensUsedPerTab));
-
-    // Update tab content
-    setTabs(
-      tabs.map((tab) =>
-        tab.name === activeTab ? { ...tab, content: value || "" } : tab
-      )
+    // ✅ Update tab content & save to localStorage
+    const updatedTabs = tabs.map((tab) =>
+      tab.name === activeTab ? { ...tab, content: value || "" } : tab
     );
+    setTabs(updatedTabs);
   };
 
-  // Add new tab
+  // ✅ Add new tab
   const addTab = () => {
     const newFile = { name: `file${tabs.length + 1}.js`, content: "// New File\n" };
-    setTabs([...tabs, newFile]);
+    const updatedTabs = [...tabs, newFile];
+    setTabs(updatedTabs);
     setActiveTab(newFile.name);
+    localStorage.setItem("editor-tabs", JSON.stringify(updatedTabs));
   };
 
-  // Close a tab
+  // ✅ Close a tab
   const closeTab = (fileName: string) => {
     const newTabs = tabs.filter((tab) => tab.name !== fileName);
     setTabs(newTabs);
     if (fileName === activeTab) {
       setActiveTab(newTabs.length > 0 ? newTabs[0].name : "");
     }
+    localStorage.setItem("editor-tabs", JSON.stringify(newTabs));
   };
 
   return (
@@ -130,7 +141,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ tabs, setTabs, activeTab, set
           value={tabs.find((tab) => tab.name === activeTab)?.content || ""}
           onChange={handleEditorChange}
           onMount={(editor) => (editorRef.current = editor)}
-          width={isSplit ? "50%" : "100%"} // ✅ Adjust width on split
+          width={isSplit ? "50%" : "100%"}
           options={{
             readOnly: remainingTokens <= 0, // ✅ Disable writing when tokens are 0
           }}
@@ -143,15 +154,13 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ tabs, setTabs, activeTab, set
             theme="vs-dark"
             value={tabs.find((tab) => tab.name === activeTab)?.content || ""}
             onMount={(editor) => (secondEditorRef.current = editor)}
-            width="50%" // ✅ Split Width
+            width="50%"
             options={{
-              readOnly: remainingTokens <= 0, // ✅ Disable writing when tokens are 0
+              readOnly: remainingTokens <= 0,
             }}
           />
         )}
       </div>
-
-    
     </div>
   );
 };
