@@ -1,19 +1,23 @@
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { Copy, Terminal, CheckCircle } from "lucide-react";
 import RunButton from "./RunButton";
 
-function OutputPanel({ activeFileContent }: { activeFileContent: string | null }) {
+interface OutputPanelProps {
+  code: string;
+}
+
+function OutputPanel({ code }: OutputPanelProps) {
   const [output, setOutput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
 
   const handleRun = async () => {
-    if (!activeFileContent) return;
+    if (!code) return;
     setIsRunning(true);
     setError(null);
     setOutput(null);
-
+  
     try {
       let capturedOutput = "";
       const originalConsoleLog = console.log;
@@ -21,15 +25,15 @@ function OutputPanel({ activeFileContent }: { activeFileContent: string | null }
         capturedOutput += args.map((arg) => String(arg)).join(" ") + "\n";
         originalConsoleLog(...args);
       };
-
-      const result = eval(activeFileContent);
+  
+      const result = eval(code); // WARNING: Only use eval for testing; it's unsafe in production.
       console.log = originalConsoleLog;
-
+  
       setOutput(capturedOutput || (result !== undefined ? result.toString() : ""));
     } catch (err: any) {
       setError(err.message);
     }
-
+  
     setIsRunning(false);
   };
 

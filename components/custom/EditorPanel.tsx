@@ -1,20 +1,24 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Dispatch, SetStateAction } from "react";
 import Image from "next/image";
 import Logo from "../../public/logo.svg";
+
+interface EditorPanelProps {
+  tabs: { name: string; content: string }[];
+  setTabs: Dispatch<SetStateAction<{ name: string; content: string }[]>>;
+  activeTab: string;
+  setActiveTab: Dispatch<SetStateAction<string>>;
+}
 
 // Dynamic Import for Monaco Editor (Reduces Initial Load Time)
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
 });
 
-const EditorPanel = () => {
-  const [tabs, setTabs] = useState<{ name: string; content: string }[]>([]);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-
-  // Load tabs from localStorage
+const EditorPanel: React.FC<EditorPanelProps> = ({ tabs, setTabs, activeTab, setActiveTab }) => {
+  // Load tabs from localStorage on first render
   useEffect(() => {
     const savedTabs = JSON.parse(localStorage.getItem("editor-tabs") || "[]");
     if (savedTabs.length > 0) {
@@ -30,20 +34,23 @@ const EditorPanel = () => {
     localStorage.setItem("editor-tabs", JSON.stringify(tabs));
   }, [tabs]);
 
+  // Add new tab
   const addTab = () => {
     const newFile = { name: `file${tabs.length + 1}.js`, content: "// New File\n" };
     setTabs([...tabs, newFile]);
     setActiveTab(newFile.name);
   };
 
+  // Close a tab
   const closeTab = (fileName: string) => {
     const newTabs = tabs.filter((tab) => tab.name !== fileName);
     setTabs(newTabs);
     if (fileName === activeTab) {
-      setActiveTab(newTabs.length > 0 ? newTabs[0].name : null);
+      setActiveTab(newTabs.length > 0 ? newTabs[0].name : ""); // Set new active tab
     }
   };
 
+  // Handle code changes in Monaco Editor
   const handleEditorChange = (value: string | undefined) => {
     setTabs(
       tabs.map((tab) =>

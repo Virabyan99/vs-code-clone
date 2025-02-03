@@ -6,21 +6,25 @@ import OutputPanel from "@/components/custom/OutputPanel";
 import { useState } from "react";
 
 export default function Home() {
-  const [code, setCode] = useState<string>("// Hello, world!\nconsole.log('Hello, world!');");
+  const [tabs, setTabs] = useState<{ name: string; content: string }[]>([
+    { name: "file1.js", content: "// Hello, world!\nconsole.log('Hello, world!');" },
+  ]);
+  const [activeTab, setActiveTab] = useState<string>("file1.js");
+
+  // Get the content of the active file
+  const activeFileContent = tabs.find((tab) => tab.name === activeTab)?.content || "";
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
       <Header />
 
       {/* Main Content */}
       <main className="flex flex-row p-4 mb-7 space-x-4">
         <div className="flex-1">
-        <EditorPanel code={code} setCode={setCode} />
-
+          <EditorPanel tabs={tabs} setTabs={setTabs} activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
         <div className="flex-1">
-        <OutputPanel code={code} />
+          <OutputPanel code={activeFileContent} />
         </div>
       </main>
 
