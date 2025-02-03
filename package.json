@@ -23,6 +23,7 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-hot-toast": "^2.5.1",
+    "react-monaco-editor": "^0.58.0",
     "react-syntax-highlighter": "^15.6.1",
     "react-virtualized": "^9.22.6",
     "svix": "^1.45.1",
